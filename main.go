@@ -19,7 +19,6 @@ const (
 )
 
 func main() {
-	fmt.Println("start echo server")
 
 	authConfig := authservice.Config{
 		SignKey:               JwtSignKey,
@@ -43,10 +42,15 @@ func main() {
 		Mysql:      mysqlCfg,
 	}
 
+	// TODO - add command for migrations
+	// mgr := migrator.New(cfg.Mysql)
+	// mgr.Down()
+
 	authSvc, userSvc := setupServices(cfg)
 
 	server := httpserver.New(cfg, authSvc, userSvc)
 
+	fmt.Println("start echo server")
 	server.Serve()
 }
 
