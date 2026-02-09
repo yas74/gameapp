@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"gocasts/gameapp/entity"
 	"gocasts/gameapp/pkg/phonenumber"
+	"gocasts/gameapp/pkg/richerror"
 )
 
 type Repository interface {
@@ -114,11 +115,13 @@ type LoginResponse struct {
 }
 
 func (s Service) Login(req LoginRequest) (LoginResponse, error) {
+	const op = "userservice.Login"
 	// TODO - it would be better to use two separate methods for existance check and GetUserByPhoneNumber
 
 	user, exist, err := s.repo.GetUserByPhoneNumber(req.PhoneNumber)
 	if err != nil {
-		return LoginResponse{}, fmt.Errorf("unexpected error: %w", err)
+		return LoginResponse{}, richerror.New(op).WithErr(err).
+			WithMeta(map[string]interface{}{"phone_number": req.PhoneNumber})
 	}
 
 	if !exist {
@@ -160,13 +163,12 @@ type ProfileResponse struct {
 }
 
 func (s Service) Profile(req ProfileRequest) (ProfileResponse, error) {
-	//getUserByID
+	const op = "userservice.Profile"
+
 	user, err := s.repo.GetUserByID(req.UserID)
 	if err != nil {
-		// i dont expect the repositoriy call return "record not found" error
-		// since i assume the interactor(service) input is already sanitized
-		// TODO - we can use Reach Error
-		return ProfileResponse{}, fmt.Errorf("unexpected error: %w", err)
+		return ProfileResponse{}, richerror.New(op).WithErr(err).
+			WithMeta(map[string]interface{}{"req": req})
 	}
 
 	return ProfileResponse{Name: user.Name}, nil
