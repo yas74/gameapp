@@ -3,6 +3,7 @@ package httpserver
 import (
 	"fmt"
 	"gocasts/gameapp/config"
+	"gocasts/gameapp/delivery/httpserver/userhandler"
 	"gocasts/gameapp/service/authservice"
 	"gocasts/gameapp/service/userservice"
 	"gocasts/gameapp/validator/uservalidator"
@@ -12,18 +13,14 @@ import (
 )
 
 type Server struct {
-	config        config.Config
-	authSvc       authservice.Service
-	userSvc       userservice.Service
-	userValidator uservalidator.Validator
+	config      config.Config
+	userhandler userhandler.Handler
 }
 
 func New(config config.Config, authSvc authservice.Service, userSvc userservice.Service, userValidator uservalidator.Validator) Server {
 	return Server{
-		config:        config,
-		authSvc:       authSvc,
-		userSvc:       userSvc,
-		userValidator: userValidator,
+		config:      config,
+		userhandler: userhandler.New(authSvc, userSvc, userValidator),
 	}
 }
 
@@ -38,10 +35,8 @@ func (s Server) Serve() {
 	// Routes
 	e.GET("/health-check", s.healthCheck)
 
-	userGroup := e.Group("/users")
-	userGroup.GET("/profile", s.userProfile)
-	userGroup.POST("/login", s.userLogin)
-	userGroup.POST("/register", s.userRegister)
+	s.userhandler.SetUserRouts(e)
+
 	// Start server
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%d", s.config.HTTPServer.Port)))
 
