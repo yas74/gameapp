@@ -2,7 +2,6 @@ package authservice
 
 import (
 	"gocasts/gameapp/entity"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -35,9 +34,7 @@ func (s Service) CreateRefreshToken(user entity.User) (string, error) {
 func (s Service) ParseToken(bearerToken string) (*Claims, error) {
 	// https://pkg.go.dev/github.com/golang-jwt/jwt/v5#example-ParseWithClaims-CustomClaimsType
 
-	tokenStr := strings.Split(bearerToken, " ")[1]
-
-	token, err := jwt.ParseWithClaims(tokenStr, &Claims{}, func(token *jwt.Token) (any, error) {
+	token, err := jwt.ParseWithClaims(bearerToken, &Claims{}, func(token *jwt.Token) (any, error) {
 		return []byte(s.config.SignKey), nil
 	})
 
@@ -67,6 +64,7 @@ func (s Service) createToken(userID uint, subject string, expireDuration time.Du
 		UserID: userID,
 	}
 
+	// TODO - add sign method to config
 	access_token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := access_token.SignedString([]byte(s.config.SignKey))
 	if err != nil {
