@@ -1,8 +1,8 @@
 package userhandler
 
 import (
+	config "gocasts/gameapp/config"
 	"gocasts/gameapp/dto"
-	"gocasts/gameapp/pkg/constant"
 	"gocasts/gameapp/pkg/httpmsg"
 	"gocasts/gameapp/service/authservice"
 	"net/http"
@@ -11,7 +11,7 @@ import (
 )
 
 func getClaims(c echo.Context) *authservice.Claims {
-	return c.Get(constant.AuthMiddlewareContextKey).(*authservice.Claims)
+	return c.Get(config.AuthMiddlewareContextKey).(*authservice.Claims)
 }
 
 func (h Handler) userProfile(c echo.Context) error {
