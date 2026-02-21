@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"gocasts/gameapp/config"
 	"gocasts/gameapp/delivery/httpserver"
+	"gocasts/gameapp/repository/migrator"
 	"gocasts/gameapp/repository/mysql"
 	"gocasts/gameapp/service/authservice"
 	"gocasts/gameapp/service/userservice"
@@ -40,6 +41,7 @@ func main() {
 	// TODO - read config path from command line
 	cfg2 := config.Load("config.yml")
 	fmt.Printf("cfg2: %v\n", cfg2)
+	// TODO - merge cfg with cfg2
 
 	cfg := config.Config{
 		HTTPServer: config.HTTPServer{Port: 8088},
@@ -47,8 +49,8 @@ func main() {
 		Mysql:      mysqlCfg,
 	}
 	// TODO - add command for migrations
-	// mgr := migrator.New(cfg.Mysql)
-	// mgr.Down()
+	mgr := migrator.New(cfg.Mysql)
+	mgr.Up()
 
 	authSvc, userSvc, userValidator := setupServices(cfg)
 
