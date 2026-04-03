@@ -6,7 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-func (h Handler) SetUserRouts(e *echo.Echo) {
+func (h Handler) SetRouts(e *echo.Echo) {
 	userGroup := e.Group("/users")
 
 	userGroup.GET("/profile", h.userProfile, middleware.Auth(h.authSvc, h.authConfig))

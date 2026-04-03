@@ -11,6 +11,6 @@ type AccessControl struct {
 type ActorType string
 
 const (
-	RoleActorType = "role"
-	UserActorType = "user"
+	RoleActorType = ActorType("role")
+	UserActorType = ActorType("user")
 )

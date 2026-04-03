@@ -6,7 +6,11 @@ import (
 	"gocasts/gameapp/delivery/httpserver"
 	"gocasts/gameapp/repository/migrator"
 	"gocasts/gameapp/repository/mysql"
+	"gocasts/gameapp/repository/mysql/mysqlaccesscontrol"
+	"gocasts/gameapp/repository/mysql/mysqluser"
+	"gocasts/gameapp/service/authorizationservice"
 	"gocasts/gameapp/service/authservice"
+	"gocasts/gameapp/service/backofficeuserservice"
 	"gocasts/gameapp/service/userservice"
 	"gocasts/gameapp/validator/uservalidator"
 	"time"
@@ -52,23 +56,30 @@ func main() {
 	mgr := migrator.New(cfg.Mysql)
 	mgr.Up()
 
-	authSvc, userSvc, userValidator := setupServices(cfg)
+	authSvc, userSvc, userValidator, backofficeUserSvc, authorizationSvc := setupServices(cfg)
 
-	server := httpserver.New(cfg, authSvc, userSvc, userValidator)
+	server := httpserver.New(cfg, authSvc, userSvc, userValidator, backofficeUserSvc, authorizationSvc)
 
 	fmt.Println("start echo server")
 	server.Serve()
 }
 
-func setupServices(cfg config.Config) (authservice.Service, userservice.Service, uservalidator.Validator) {
+func setupServices(cfg config.Config) (authservice.Service, userservice.Service, uservalidator.Validator,
+	backofficeuserservice.Service, authorizationservice.Service) {
 	authSvc := authservice.New(cfg.Auth)
 
 	mysqlRepo := mysql.New(cfg.Mysql)
 
-	userSvc := userservice.New(authSvc, mysqlRepo)
+	userMysql := mysqluser.New(mysqlRepo)
+	userSvc := userservice.New(authSvc, userMysql)
 
-	uV := uservalidator.New(mysqlRepo)
+	backofficeUserSvc := backofficeuserservice.New()
 
-	return authSvc, userSvc, uV
+	aclMysql := mysqlaccesscontrol.New(mysqlRepo)
+	authorizationSvc := authorizationservice.New(aclMysql)
+
+	uV := uservalidator.New(userMysql)
+
+	return authSvc, userSvc, uV, backofficeUserSvc, authorizationSvc
 
 }
