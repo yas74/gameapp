@@ -10,7 +10,7 @@ import (
 	"github.com/knadh/koanf/v2"
 )
 
-func Load(configPath string) *Config {
+func Load(configPath string) Config {
 	var k = koanf.New(".")
 
 	// Load default
@@ -33,6 +33,6 @@ func Load(configPath string) *Config {
 		panic(err)
 	}
 
-	return &cfg
+	return cfg
 
 }
