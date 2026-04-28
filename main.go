@@ -10,6 +10,7 @@ import (
 	"gocasts/gameapp/repository/mysql/mysqlaccesscontrol"
 	"gocasts/gameapp/repository/mysql/mysqluser"
 	"gocasts/gameapp/repository/redis/redismatching"
+	"gocasts/gameapp/scheduler"
 	"gocasts/gameapp/service/authorizationservice"
 	"gocasts/gameapp/service/authservice"
 	"gocasts/gameapp/service/backofficeuserservice"
@@ -17,6 +18,9 @@ import (
 	"gocasts/gameapp/service/userservice"
 	"gocasts/gameapp/validator/matchingvalidator"
 	"gocasts/gameapp/validator/uservalidator"
+	"os"
+	"os/signal"
+	"time"
 )
 
 func main() {
@@ -30,10 +34,25 @@ func main() {
 	// TODO - add struct and add these returned items as the struct fields
 	authSvc, userSvc, userValidator, backofficeUserSvc, authorizationSvc, matchingValidator, matchingSvc := setupServices(cfg)
 
-	server := httpserver.New(cfg, authSvc, userSvc, userValidator, backofficeUserSvc, authorizationSvc, matchingSvc, matchingValidator)
+	go func() {
+		server := httpserver.New(cfg, authSvc, userSvc, userValidator, backofficeUserSvc, authorizationSvc, matchingSvc, matchingValidator)
+		server.Serve()
+	}()
 
-	fmt.Println("start echo server")
-	server.Serve()
+	done := make(chan bool)
+
+	go func() {
+		sch := scheduler.New()
+		sch.Start(done)
+	}()
+
+	sigch := make(chan os.Signal, 1)
+	signal.Notify(sigch, os.Interrupt)
+	<-sigch
+	fmt.Println("arrived interupt signal, shutting down gracefully")
+	done <- true
+	time.Sleep(5 * time.Second)
+
 }
 
 func setupServices(cfg config.Config) (authservice.Service, userservice.Service, uservalidator.Validator,
