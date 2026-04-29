@@ -21,6 +21,7 @@ import (
 	"gocasts/gameapp/validator/uservalidator"
 	"os"
 	"os/signal"
+	"sync"
 )
 
 func main() {
@@ -42,9 +43,12 @@ func main() {
 
 	done := make(chan bool)
 
+	var wg sync.WaitGroup
 	go func() {
-		sch := scheduler.New()
-		sch.Start(done)
+		sch := scheduler.New(matchingSvc)
+
+		wg.Add(1)
+		sch.Start(done, &wg)
 	}()
 
 	sigch := make(chan os.Signal, 1)
@@ -60,8 +64,10 @@ func main() {
 	}
 
 	done <- true
-	// time.Sleep(cfg.Application.GracefulShutdownTimeout)
+
 	<-ctxWithTimeout.Done()
+
+	wg.Wait()
 }
 
 func setupServices(cfg config.Config) (authservice.Service, userservice.Service, uservalidator.Validator,
