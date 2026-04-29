@@ -11,7 +11,6 @@ import (
 	"gocasts/gameapp/repository/mysql/mysqlaccesscontrol"
 	"gocasts/gameapp/repository/mysql/mysqluser"
 	"gocasts/gameapp/repository/redis/redismatching"
-	"gocasts/gameapp/scheduler"
 	"gocasts/gameapp/service/authorizationservice"
 	"gocasts/gameapp/service/authservice"
 	"gocasts/gameapp/service/backofficeuserservice"
@@ -21,6 +20,8 @@ import (
 	"gocasts/gameapp/validator/uservalidator"
 	"os"
 	"os/signal"
+
+	"github.com/labstack/echo/v4"
 )
 
 func main() {
@@ -34,17 +35,10 @@ func main() {
 	// TODO - add struct and add these returned items as the struct fields
 	authSvc, userSvc, userValidator, backofficeUserSvc, authorizationSvc, matchingValidator, matchingSvc := setupServices(cfg)
 
-	server := httpserver.New(cfg, authSvc, userSvc, userValidator, backofficeUserSvc, authorizationSvc, matchingSvc, matchingValidator)
-
+	var httpServer *echo.Echo
 	go func() {
-		server.Serve()
-	}()
-
-	done := make(chan bool)
-
-	go func() {
-		sch := scheduler.New()
-		sch.Start(done)
+		server := httpserver.New(cfg, authSvc, userSvc, userValidator, backofficeUserSvc, authorizationSvc, matchingSvc, matchingValidator)
+		httpServer = server.Serve()
 	}()
 
 	sigch := make(chan os.Signal, 1)
@@ -55,12 +49,11 @@ func main() {
 	ctx := context.Background()
 	ctxWithTimeout, cancel := context.WithTimeout(ctx, cfg.Application.GracefulShutdownTimeout)
 	defer cancel()
-	if err := server.Router.Shutdown(ctxWithTimeout); err != nil {
+
+	if err := httpServer.Shutdown(ctxWithTimeout); err != nil {
 		fmt.Println("http server shutdown error:", err)
 	}
 
-	done <- true
-	// time.Sleep(cfg.Application.GracefulShutdownTimeout)
 	<-ctxWithTimeout.Done()
 }
 

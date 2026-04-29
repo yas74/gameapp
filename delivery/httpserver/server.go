@@ -19,6 +19,7 @@ import (
 )
 
 type Server struct {
+	Router                *echo.Echo
 	config                config.Config
 	userhandler           userhandler.Handler
 	backofficeUserHandler backofficeuserhandler.Handler
@@ -30,6 +31,7 @@ func New(config config.Config, authSvc authservice.Service, userSvc userservice.
 	authorizationSvc authorizationservice.Service,
 	matchingSvc matchingservice.Service, matchingValidator matchingvalidator.Validator) Server {
 	return Server{
+		Router:                echo.New(),
 		config:                config,
 		userhandler:           userhandler.New(authSvc, userSvc, userValidator, config.Auth),
 		backofficeUserHandler: backofficeuserhandler.New(authSvc, config.Auth, backofficeUserSvc, authorizationSvc),
@@ -38,25 +40,21 @@ func New(config config.Config, authSvc authservice.Service, userSvc userservice.
 }
 
 func (s Server) Serve() {
-
-	e := echo.New()
-
 	// Middleware
-	e.Use(middleware.RequestLogger()) // use the RequestLogger middleware with slog logger
-	e.Use(middleware.Recover())       // recover panics as errors for proper error handling
+	s.Router.Use(middleware.RequestLogger()) // use the RequestLogger middleware with slog logger
+	s.Router.Use(middleware.Recover())       // recover panics as errors for proper error handling
 
 	// Routes
-	e.GET("/health-check", s.healthCheck)
+	s.Router.GET("/health-check", s.healthCheck)
 
-	s.userhandler.SetRouts(e)
+	s.userhandler.SetRouts(s.Router)
 
-	s.backofficeUserHandler.SetRouts(e)
+	s.backofficeUserHandler.SetRouts(s.Router)
 
-	s.matchinghandler.SetRouts(e)
+	s.matchinghandler.SetRouts(s.Router)
 
 	// Start server
 	address := fmt.Sprintf(":%d", s.config.HTTPServer.Port)
 	fmt.Printf("start echo server on %s\n", address)
-	e.Logger.Fatal(e.Start(address))
-
+	s.Router.Logger.Fatal(s.Router.Start(address))
 }
