@@ -11,11 +11,13 @@ import (
 	"gocasts/gameapp/repository/mysql/mysqlaccesscontrol"
 	"gocasts/gameapp/repository/mysql/mysqluser"
 	"gocasts/gameapp/repository/redis/redismatching"
+	"gocasts/gameapp/repository/redis/redispresence"
 	"gocasts/gameapp/scheduler"
 	"gocasts/gameapp/service/authorizationservice"
 	"gocasts/gameapp/service/authservice"
 	"gocasts/gameapp/service/backofficeuserservice"
 	"gocasts/gameapp/service/matchingservice"
+	"gocasts/gameapp/service/presenceservice"
 	"gocasts/gameapp/service/userservice"
 	"gocasts/gameapp/validator/matchingvalidator"
 	"gocasts/gameapp/validator/uservalidator"
@@ -33,9 +35,11 @@ func main() {
 	mgr.Up()
 
 	// TODO - add struct and add these returned items as the struct fields
-	authSvc, userSvc, userValidator, backofficeUserSvc, authorizationSvc, matchingValidator, matchingSvc := setupServices(cfg)
+	authSvc, userSvc, userValidator, backofficeUserSvc, authorizationSvc,
+		matchingValidator, matchingSvc, presenceSvc := setupServices(cfg)
 
-	server := httpserver.New(cfg, authSvc, userSvc, userValidator, backofficeUserSvc, authorizationSvc, matchingSvc, matchingValidator)
+	server := httpserver.New(cfg, authSvc, userSvc, userValidator, backofficeUserSvc,
+		authorizationSvc, matchingSvc, matchingValidator, presenceSvc)
 
 	go func() {
 		server.Serve()
@@ -45,7 +49,7 @@ func main() {
 
 	var wg sync.WaitGroup
 	go func() {
-		sch := scheduler.New(matchingSvc)
+		sch := scheduler.New(cfg.Scheduler, matchingSvc)
 
 		wg.Add(1)
 		sch.Start(done, &wg)
@@ -70,8 +74,11 @@ func main() {
 	wg.Wait()
 }
 
-func setupServices(cfg config.Config) (authservice.Service, userservice.Service, uservalidator.Validator,
-	backofficeuserservice.Service, authorizationservice.Service, matchingvalidator.Validator, matchingservice.Service) {
+func setupServices(cfg config.Config) (authservice.Service, userservice.Service,
+	uservalidator.Validator,
+	backofficeuserservice.Service, authorizationservice.Service,
+	matchingvalidator.Validator,
+	matchingservice.Service, presenceservice.Service) {
 	authSvc := authservice.New(cfg.Auth)
 
 	mysqlRepo := mysql.New(cfg.Mysql)
@@ -89,9 +96,13 @@ func setupServices(cfg config.Config) (authservice.Service, userservice.Service,
 	matchingV := matchingvalidator.New()
 
 	redisAdapter := redis.New(cfg.Redis)
+
 	matchingRepo := redismatching.New(redisAdapter)
 	matchingSvc := matchingservice.New(cfg.MatchingService, matchingRepo)
 
-	return authSvc, userSvc, uV, backofficeUserSvc, authorizationSvc, matchingV, matchingSvc
+	presenceRepo := redispresence.New(redisAdapter)
+	presenceSvc := presenceservice.New(cfg.PresenceService, presenceRepo)
+
+	return authSvc, userSvc, uV, backofficeUserSvc, authorizationSvc, matchingV, matchingSvc, presenceSvc
 
 }

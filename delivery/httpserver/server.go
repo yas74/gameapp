@@ -10,6 +10,7 @@ import (
 	"gocasts/gameapp/service/authservice"
 	"gocasts/gameapp/service/backofficeuserservice"
 	"gocasts/gameapp/service/matchingservice"
+	"gocasts/gameapp/service/presenceservice"
 	"gocasts/gameapp/service/userservice"
 	"gocasts/gameapp/validator/matchingvalidator"
 	"gocasts/gameapp/validator/uservalidator"
@@ -29,13 +30,14 @@ type Server struct {
 func New(config config.Config, authSvc authservice.Service, userSvc userservice.Service, userValidator uservalidator.Validator,
 	backofficeUserSvc backofficeuserservice.Service,
 	authorizationSvc authorizationservice.Service,
-	matchingSvc matchingservice.Service, matchingValidator matchingvalidator.Validator) Server {
+	matchingSvc matchingservice.Service, matchingValidator matchingvalidator.Validator,
+	presenceSvc presenceservice.Service) Server {
 	return Server{
 		Router:                echo.New(),
 		config:                config,
-		userhandler:           userhandler.New(authSvc, userSvc, userValidator, config.Auth),
+		userhandler:           userhandler.New(authSvc, userSvc, userValidator, config.Auth, presenceSvc),
 		backofficeUserHandler: backofficeuserhandler.New(authSvc, config.Auth, backofficeUserSvc, authorizationSvc),
-		matchinghandler:       matchinghandler.New(config.Auth, authSvc, matchingValidator, matchingSvc),
+		matchinghandler:       matchinghandler.New(config.Auth, authSvc, matchingValidator, matchingSvc, presenceSvc),
 	}
 }
 

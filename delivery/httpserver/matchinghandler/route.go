@@ -9,5 +9,7 @@ import (
 func (h Handler) SetRouts(e *echo.Echo) {
 	matchingGroup := e.Group("/matching")
 
-	matchingGroup.POST("/add-to-waiting-list", h.AddToWaitingList, middleware.Auth(h.authSvc, h.authConfig))
+	matchingGroup.POST("/add-to-waiting-list", h.AddToWaitingList,
+		middleware.Auth(h.authSvc, h.authConfig),
+		middleware.UpsertPresence(h.presenceSvc))
 }

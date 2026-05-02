@@ -23,5 +23,12 @@ redis:
   db: 0
 
 
-matchingservice:
+matching_service:
   timeout: "2m"
+
+presence_service:
+  prefix: "presence"
+  expiration_time: "60m"
+
+scheduler:
+  MatchWaitadUsersIntervalInSeconds: 30

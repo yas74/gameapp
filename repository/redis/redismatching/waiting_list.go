@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"gocasts/gameapp/entity"
 	"gocasts/gameapp/pkg/richerror"
-	"time"
+	"gocasts/gameapp/pkg/timestamp"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -19,7 +19,7 @@ func (d DB) AddToWaitingList(userID uint, category entity.Category) error {
 	ctx := context.Background()
 	zsetKey := fmt.Sprintf("%s:%s", WaitingListPrefix, category)
 	_, err := d.adapter.Client().ZAdd(ctx, zsetKey, redis.Z{
-		Score:  float64(time.Now().UnixMicro()),
+		Score:  float64(timestamp.Now()),
 		Member: fmt.Sprintf("%d", userID),
 	}).Result()
 
