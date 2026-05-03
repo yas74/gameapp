@@ -15,6 +15,7 @@ type Config struct {
 
 type Repository interface {
 	Upsert(ctx context.Context, key string, timeStamp int64, expTime time.Duration) error
+	GetPresence(ctx context.Context, key string) (int64, error)
 }
 
 type Service struct {
@@ -38,4 +39,32 @@ func (s Service) Upsert(ctx context.Context, req dto.UpsertPresenceRequest) (dto
 	}
 
 	return dto.UpsertPresenceResponse{}, nil
+}
+
+func (s Service) GetPresence(ctx context.Context, req dto.GetPresenceRequest) (dto.GetPresenceResponse, error) {
+	const op = richerror.Op("presenceservice.GetPresence")
+
+	presenceList := make([]dto.GetPresenceItem, 0)
+
+	for _, i := range req.UserIDs {
+		timeStamp, err := s.repo.GetPresence(ctx, s.GetPresenceKey(i))
+		if err != nil {
+			// TODO - log error
+			// TODO - update metrics
+			continue
+		}
+
+		presenceItem := dto.GetPresenceItem{
+			UserID:    i,
+			TimeStamp: timeStamp,
+		}
+
+		presenceList = append(presenceList, presenceItem)
+	}
+
+	return dto.GetPresenceResponse{Items: presenceList}, nil
+}
+
+func (s Service) GetPresenceKey(userID uint) string {
+	return fmt.Sprintf("%s:%d", s.config.Prefix, userID)
 }

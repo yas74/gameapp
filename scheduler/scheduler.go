@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"fmt"
 	"gocasts/gameapp/dto"
 	"gocasts/gameapp/service/matchingservice"
@@ -52,9 +53,15 @@ func (s Scheduler) Start(done <-chan bool, wg *sync.WaitGroup) {
 }
 
 func (s Scheduler) matchWaitadUsers() {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
 
-	fmt.Println(time.Now())
-
-	req := dto.MatchWaitedUsersRequest{}
-	s.matchingSvc.MatchWaitedUsers(req)
+	//get lock
+	_, err := s.matchingSvc.MatchWaitedUsers(ctx, dto.MatchWaitedUsersRequest{})
+	if err != nil {
+		// TODO - log error
+		// TODO - update metrics
+		fmt.Println("matchSvc.MatchWaitedUsers error", err)
+	}
+	//free lock
 }
